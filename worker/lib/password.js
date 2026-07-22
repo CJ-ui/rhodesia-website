@@ -3,7 +3,10 @@
 // via scripts/create-staff-user.mjs (Node's crypto.webcrypto), so both
 // produce byte-identical hashes for the same password/salt.
 
-const ITERATIONS = 210000;
+// Cloudflare Workers' PBKDF2 implementation caps iterations at 100,000
+// (unlike Node's Web Crypto, which allows higher counts) — this is the max
+// usable value on the actual edge runtime, not merely a local-dev quirk.
+const ITERATIONS = 100000;
 const KEY_LENGTH_BITS = 256;
 
 function toBase64(bytes) {

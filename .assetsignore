@@ -1,0 +1,15 @@
+node_modules/
+.git/
+.wrangler/
+.claude/
+Claude-Guides/
+worker/
+migrations/
+scripts/
+wrangler.jsonc
+package.json
+package-lock.json
+.gitignore
+.assetsignore
+CLAUDE.md
+*.log
