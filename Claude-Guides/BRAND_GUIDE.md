@@ -8,6 +8,14 @@ A fictional alternate-history government services portal for the Republic of Rho
 
 Every page's footer must carry a disclaimer that this is fictional worldbuilding content, not a real government. Never drop that disclaimer, and never write copy that presents the site as anything other than fiction if asked to expand it.
 
+## Citizen's Hub (accounts)
+
+The site has a real backend (Cloudflare Worker + D1) for citizen accounts at `/citizens-portal/` and a separate staff review system at `/group-community-management/` (login only, no public registration — staff accounts are provisioned via `scripts/create-staff-user.mjs` or by an existing staff member).
+
+**Current state:** `/citizens-portal/index.html` ("Citizen's Hub") is linked directly from the main site's nav (a gold pill-styled link, `.nav-cta` in `layout.css`) on every public page. This reverses an earlier decision to keep it unlinked/hidden — the owner explicitly asked for it to be reachable via a button, so treat it as a normal, discoverable part of the site now, not a hidden section. The hub page leads with "Create Account" as the primary action, "Log In" as secondary, and a small "Staff & Admin Log In" link at the bottom pointing to the separate staff portal.
+
+Citizen and staff sessions remain fully separate (different cookies, different tables) — that architectural separation is unrelated to the nav-visibility decision above and should stay in place.
+
 ## Brand identity
 
 - **Name:** Republic of Rhodesia — Government Portal
