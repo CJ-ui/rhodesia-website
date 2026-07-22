@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Republic of Rhodesia — Official Government Portal</title>
+  <meta name="description" content="The official government services portal of the Republic of Rhodesia. Find agencies, apply for services, and read national records." />
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+  <link rel="alternate icon" href="assets/img/favicon.png" />
+  <link rel="stylesheet" href="assets/css/tokens.css" />
+  <link rel="stylesheet" href="assets/css/base.css" />
+  <link rel="stylesheet" href="assets/css/layout.css" />
+  <link rel="stylesheet" href="assets/css/components.css" />
+</head>
+<body>
+
+  <div class="utility-bar">
+    <div class="container">
+      <span>An official portal of the Government of the Republic of Rhodesia</span>
+      <ul class="utility-bar__links">
+        <li><a href="agencies.html">Agency Directory</a></li>
+        <li><a href="news.html">News &amp; Notices</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="index.html">
+        <span class="brand__crest">
+          <img src="assets/img/coat-of-arms-primary.svg" alt="Coat of Arms of the Republic of Rhodesia" />
+        </span>
+        <span class="brand__text">
+          <span class="brand__eyebrow">Republic of Rhodesia</span>
+          <span class="brand__title">Government Portal</span>
+        </span>
+      </a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="main-nav">
+        Menu
+      </button>
+      <nav class="main-nav" id="main-nav" aria-label="Primary">
+        <ul class="main-nav__list">
+          <li><a href="index.html" aria-current="page">Home</a></li>
+          <li><a href="agencies.html">Agencies</a></li>
+          <li><a href="news.html">News</a></li>
+          <li><a href="constitution.html">Constitution</a></li>
+          <li><a href="history.html">History</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <p class="hero__motto">&ldquo;Sit Nomine Digna&rdquo; &mdash; May she be worthy of the name</p>
+        <h1>Official Portal of the Government of the Republic of Rhodesia</h1>
+        <p class="hero__lede">Find government services, search agency records, and read the founding documents of the Republic — all in one place.</p>
+        <form class="search-form" data-tile-search role="search" aria-label="Search government services">
+          <label class="visually-hidden" for="site-search">Search services, ministries, or documents</label>
+          <input type="search" id="site-search" placeholder="Search services, ministries, or documents…" />
+          <button type="submit">Search</button>
+        </form>
+        <p class="search-hint">Try “vote,” “passport,” “land,” or “police”</p>
+      </div>
+    </section>
+
+    <section class="section section--alt" id="news">
+      <div class="container">
+        <div class="section-heading">
+          <p class="eyebrow">Latest</p>
+          <h2>News &amp; Notices</h2>
+          <p>Recent announcements from Rhodesian government agencies.</p>
+        </div>
+
+        <div class="notice-grid">
+          <article class="notice-card">
+            <div class="notice-meta">
+              <span class="notice-tag">Notice</span>
+              <span>14 July 2026</span>
+            </div>
+            <h3>Electoral Commission Opens Roll Ahead of General Election</h3>
+            <p>Constituency registration centres open nationwide as the Commission prepares the voters&rsquo; roll for the coming general election.</p>
+            <a class="read-more" href="news.html#electoral-roll-2026">Read more &rarr;</a>
+          </article>
+
+          <article class="notice-card">
+            <div class="notice-meta">
+              <span class="notice-tag">Press Release</span>
+              <span>2 July 2026</span>
+            </div>
+            <h3>National Archives Completes Digitisation of Settlement Records</h3>
+            <p>The full 1966 Salisbury Agreement archive is now available for public research at the National Archives reading room.</p>
+            <a class="read-more" href="news.html#archives-digitisation">Read more &rarr;</a>
+          </article>
+
+          <article class="notice-card">
+            <div class="notice-meta">
+              <span class="notice-tag">Consultation</span>
+              <span>19 June 2026</span>
+            </div>
+            <h3>Ministry of Lands Opens Public Consultation on Registry Modernisation</h3>
+            <p>Landholders are invited to comment on proposed changes to title registration procedures before 30 August.</p>
+            <a class="read-more" href="news.html#lands-consultation">Read more &rarr;</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="quicklinks">
+      <div class="container">
+        <div class="section-heading">
+          <p class="eyebrow">National Records</p>
+          <h2>Explore the Republic</h2>
+        </div>
+
+        <div class="quicklinks">
+          <a class="quicklink-card" href="constitution.html">
+            <span class="quicklink-card__label">Founding Document</span>
+            <h3>The Constitution</h3>
+            <p>Read the full text of the Constitution of the Republic of Rhodesia, Chapters I&ndash;VIII.</p>
+          </a>
+          <a class="quicklink-card" href="history.html">
+            <span class="quicklink-card__label">National Archives</span>
+            <h3>History of Rhodesia</h3>
+            <p>From the Settlement of 1966 to the modern Republic — the official history, compiled by the National Archives.</p>
+          </a>
+          <a class="quicklink-card" href="agencies.html">
+            <span class="quicklink-card__label">Directory</span>
+            <h3>Agency Directory</h3>
+            <p>Browse ministries, commissions, and departments of the Government of Rhodesia.</p>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">
+            <img src="assets/img/coat-of-arms-primary.svg" alt="" aria-hidden="true" />
+            <div>
+              <strong>Republic of Rhodesia</strong>
+              <p class="footer-brand__motto">&ldquo;Sit Nomine Digna&rdquo;</p>
+            </div>
+          </div>
+        </div>
+        <div>
+          <p class="footer-heading">Government</p>
+          <ul class="footer-links">
+            <li><a href="agencies.html">Agency Directory</a></li>
+            <li><a href="constitution.html">Constitution</a></li>
+            <li><a href="history.html">National History</a></li>
+          </ul>
+        </div>
+        <div>
+          <p class="footer-heading">Resources</p>
+          <ul class="footer-links">
+            <li><a href="news.html">News &amp; Notices</a></li>
+            <li><a href="agencies.html">Ministries &amp; Departments</a></li>
+            <li><a href="constitution.html#chapter-5">Fundamental Rights</a></li>
+          </ul>
+        </div>
+        <div>
+          <p class="footer-heading">About</p>
+          <ul class="footer-links">
+            <li><a href="history.html#chapter-1">The Settlement of 1966</a></li>
+            <li><a href="history.html#chapter-5">Institutions of the Republic</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p class="footer-disclaimer">This is a fictional government portal created for an alternate-history worldbuilding project. The Republic of Rhodesia depicted here, its institutions, and its news items are works of fiction and do not represent any real government.</p>
+        <p>&copy; Republic of Rhodesia — Government Portal</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="assets/js/nav.js" defer></script>
+  <script src="assets/js/search.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+:root {
+  /* Core palette — derived from the national flag and coat of arms */
+  --color-green-900: #0a3324;
+  --color-green-800: #0f4b32;
+  --color-green-700: #146146;
+  --color-green-600: #1c7a58;
+
+  --color-white: #ffffff;
+  --color-cream: #f7f5ef;
+  --color-cream-dark: #efe9da;
+
+  --color-gold-700: #82632c;
+  --color-gold-600: #9b7735;
+  --color-gold-500: #b58c3f;
+  --color-gold-400: #d8a537;
+  --color-gold-300: #ecc219;
+
+  --color-ink-900: #171717;
+  --color-ink-700: #2c2a24;
+  --color-ink-600: #473921;
+  --color-ink-400: #6b6459;
+
+  --color-border: #d8d2c4;
+  --color-border-strong: #b9ad91;
+
+  --color-notice-bg: #fdf8ea;
+  --color-notice-border: #ecc219;
+
+  /* Semantic aliases */
+  --color-bg: var(--color-cream);
+  --color-surface: var(--color-white);
+  --color-surface-alt: var(--color-cream-dark);
+  --color-primary: var(--color-green-800);
+  --color-primary-hover: var(--color-green-700);
+  --color-accent: var(--color-gold-600);
+  --color-accent-hover: var(--color-gold-400);
+  --color-text: var(--color-ink-900);
+  --color-text-muted: var(--color-ink-600);
+  --color-link: var(--color-green-800);
+  --color-link-hover: var(--color-gold-700);
+  --color-focus-ring: var(--color-gold-300);
+
+  /* Typography */
+  --font-serif: Georgia, "Times New Roman", Times, serif;
+  --font-sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --line-height-base: 1.6;
+  --line-height-tight: 1.25;
+
+  /* Spacing scale */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2rem;
+  --space-6: 3rem;
+  --space-7: 4rem;
+  --space-8: 6rem;
+
+  /* Layout */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-card: 0 1px 3px rgba(15, 75, 50, 0.12), 0 1px 2px rgba(15, 75, 50, 0.08);
+  --shadow-card-hover: 0 8px 20px rgba(15, 75, 50, 0.16), 0 2px 6px rgba(15, 75, 50, 0.1);
+  --max-width: 1200px;
+  --header-height: 64px;
+}
