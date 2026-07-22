@@ -26,6 +26,14 @@
   --color-notice-bg: #fdf8ea;
   --color-notice-border: #ecc219;
 
+  --color-error: #7a2e2e;
+  --color-error-bg: #fbeceb;
+  --color-error-border: #d98f8a;
+
+  --color-success: #146146;
+  --color-success-bg: #eaf3ee;
+  --color-success-border: #9cc2ac;
+
   /* Semantic aliases */
   --color-bg: var(--color-cream);
   --color-surface: var(--color-white);

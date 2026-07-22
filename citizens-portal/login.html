@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Log In — Citizen's Portal</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+  <link rel="stylesheet" href="../assets/css/tokens.css" />
+  <link rel="stylesheet" href="../assets/css/base.css" />
+  <link rel="stylesheet" href="../assets/css/forms.css" />
+</head>
+<body class="portal-body">
+
+  <header class="portal-header">
+    <div class="container">
+      <span class="portal-header__crest">
+        <img src="../assets/img/coat-of-arms-primary.svg" alt="" aria-hidden="true" />
+      </span>
+      <span class="portal-header__text">
+        <span class="portal-header__eyebrow">Republic of Rhodesia</span>
+        <span class="portal-header__title">Citizen's Portal</span>
+      </span>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <div class="portal-card">
+      <h1>Log In</h1>
+      <p class="portal-card__lede">Access your citizen account.</p>
+
+      <div class="form-alert form-alert--error" data-form-alert></div>
+
+      <form data-login-form novalidate>
+        <div class="field-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" autocomplete="username" required />
+        </div>
+        <div class="field-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" autocomplete="current-password" required />
+        </div>
+        <button class="portal-button" type="submit">Log In</button>
+      </form>
+
+      <p class="portal-links">Don&rsquo;t have an account? <a href="register.html">Register here</a></p>
+    </div>
+  </main>
+
+  <footer class="portal-footer">
+    <p class="portal-footer__disclaimer">This is a fictional government portal created for an alternate-history worldbuilding project and does not represent any real government.</p>
+    <a href="../index.html">&larr; Return to main site</a>
+  </footer>
+
+  <script src="../assets/js/citizen-portal.js" defer></script>
+</body>
+</html>

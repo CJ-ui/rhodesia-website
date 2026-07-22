@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — Citizen's Portal</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+  <link rel="stylesheet" href="../assets/css/tokens.css" />
+  <link rel="stylesheet" href="../assets/css/base.css" />
+  <link rel="stylesheet" href="../assets/css/forms.css" />
+</head>
+<body class="portal-body">
+
+  <header class="portal-header">
+    <div class="container">
+      <span class="portal-header__crest">
+        <img src="../assets/img/coat-of-arms-primary.svg" alt="" aria-hidden="true" />
+      </span>
+      <span class="portal-header__text">
+        <span class="portal-header__eyebrow">Republic of Rhodesia</span>
+        <span class="portal-header__title">Citizen's Portal</span>
+      </span>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <div class="portal-card" data-citizen-dashboard>
+      <h1>Welcome, <span data-username>&hellip;</span></h1>
+      <p class="portal-card__lede">
+        Account status: <span class="status-badge" data-status>&hellip;</span>
+      </p>
+      <div class="field-group">
+        <label>Roblox Username</label>
+        <p data-roblox>&hellip;</p>
+      </div>
+      <div class="field-group">
+        <label>Discord Handle</label>
+        <p data-discord>&hellip;</p>
+      </div>
+      <button class="portal-button portal-button--secondary" data-logout type="button">Log Out</button>
+    </div>
+  </main>
+
+  <footer class="portal-footer">
+    <p class="portal-footer__disclaimer">This is a fictional government portal created for an alternate-history worldbuilding project and does not represent any real government.</p>
+    <a href="../index.html">&larr; Return to main site</a>
+  </footer>
+
+  <script src="../assets/js/citizen-portal.js" defer></script>
+</body>
+</html>
