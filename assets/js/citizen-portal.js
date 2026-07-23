@@ -37,22 +37,26 @@ document.addEventListener("DOMContentLoaded", function () {
       const submitBtn = registerForm.querySelector("button[type=submit]");
       submitBtn.disabled = true;
 
-      const { ok, data } = await postJson("/citizens-portal/api/register", {
-        username: registerForm.username.value.trim(),
-        password,
-        confirmPassword,
-        robloxUsername: registerForm.robloxUsername.value.trim(),
-        discordHandle: registerForm.discordHandle.value.trim(),
-      });
+      try {
+        const { ok, data } = await postJson("/citizens-portal/api/register", {
+          username: registerForm.username.value.trim(),
+          password,
+          confirmPassword,
+          robloxUsername: registerForm.robloxUsername.value.trim(),
+          discordHandle: registerForm.discordHandle.value.trim(),
+        });
 
-      submitBtn.disabled = false;
+        if (!ok) {
+          showAlert(alertEl, data.error || "Registration failed. Please try again.");
+          return;
+        }
 
-      if (!ok) {
-        showAlert(alertEl, data.error || "Registration failed. Please try again.");
-        return;
+        window.location.href = "pending.html";
+      } catch (err) {
+        showAlert(alertEl, "Could not reach the server. Check your connection and try again.");
+      } finally {
+        submitBtn.disabled = false;
       }
-
-      window.location.href = "pending.html";
     });
   }
 
@@ -67,19 +71,23 @@ document.addEventListener("DOMContentLoaded", function () {
       const submitBtn = loginForm.querySelector("button[type=submit]");
       submitBtn.disabled = true;
 
-      const { ok, data } = await postJson("/citizens-portal/api/login", {
-        username: loginForm.username.value.trim(),
-        password: loginForm.password.value,
-      });
+      try {
+        const { ok, data } = await postJson("/citizens-portal/api/login", {
+          username: loginForm.username.value.trim(),
+          password: loginForm.password.value,
+        });
 
-      submitBtn.disabled = false;
+        if (!ok) {
+          showAlert(alertEl, data.error || "Login failed. Please try again.");
+          return;
+        }
 
-      if (!ok) {
-        showAlert(alertEl, data.error || "Login failed. Please try again.");
-        return;
+        window.location.href = "dashboard.html";
+      } catch (err) {
+        showAlert(alertEl, "Could not reach the server. Check your connection and try again.");
+      } finally {
+        submitBtn.disabled = false;
       }
-
-      window.location.href = "dashboard.html";
     });
   }
 
@@ -103,8 +111,11 @@ document.addEventListener("DOMContentLoaded", function () {
     const logoutBtn = dashboard.querySelector("[data-logout]");
     if (logoutBtn) {
       logoutBtn.addEventListener("click", async function () {
-        await fetch("/citizens-portal/api/logout", { method: "POST", credentials: "same-origin" });
-        window.location.href = "login.html";
+        try {
+          await fetch("/citizens-portal/api/logout", { method: "POST", credentials: "same-origin" });
+        } finally {
+          window.location.href = "login.html";
+        }
       });
     }
   }

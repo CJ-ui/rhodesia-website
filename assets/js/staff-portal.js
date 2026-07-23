@@ -38,19 +38,23 @@ document.addEventListener("DOMContentLoaded", function () {
       const submitBtn = loginForm.querySelector("button[type=submit]");
       submitBtn.disabled = true;
 
-      const { ok, data } = await postJson("/group-community-management/api/login", {
-        username: loginForm.username.value.trim(),
-        password: loginForm.password.value,
-      });
+      try {
+        const { ok, data } = await postJson("/group-community-management/api/login", {
+          username: loginForm.username.value.trim(),
+          password: loginForm.password.value,
+        });
 
-      submitBtn.disabled = false;
+        if (!ok) {
+          showAlert(alertEl, data.error || "Login failed. Please try again.");
+          return;
+        }
 
-      if (!ok) {
-        showAlert(alertEl, data.error || "Login failed. Please try again.");
-        return;
+        window.location.href = "dashboard.html";
+      } catch (err) {
+        showAlert(alertEl, "Could not reach the server. Check your connection and try again.");
+      } finally {
+        submitBtn.disabled = false;
       }
-
-      window.location.href = "dashboard.html";
     });
   }
 
@@ -65,56 +69,68 @@ document.addEventListener("DOMContentLoaded", function () {
   const addStaffAlert = addStaffForm ? addStaffForm.querySelector("[data-form-alert]") : null;
 
   async function loadMe() {
-    const res = await fetch("/group-community-management/api/me", { credentials: "same-origin" });
-    if (!res.ok) {
+    try {
+      const res = await fetch("/group-community-management/api/me", { credentials: "same-origin" });
+      if (!res.ok) {
+        window.location.href = "login.html";
+        return;
+      }
+      const data = await res.json();
+      dashboard.querySelector("[data-staff-name]").textContent = data.displayName;
+    } catch (err) {
       window.location.href = "login.html";
-      return;
     }
-    const data = await res.json();
-    dashboard.querySelector("[data-staff-name]").textContent = data.displayName;
   }
 
   async function loadPending() {
-    const res = await fetch("/group-community-management/api/citizens/pending", {
-      credentials: "same-origin",
-    });
-    if (!res.ok) return;
-    const { users } = await res.json();
+    try {
+      const res = await fetch("/group-community-management/api/citizens/pending", {
+        credentials: "same-origin",
+      });
+      if (!res.ok) return;
+      const { users } = await res.json();
 
-    pendingBody.innerHTML = "";
-    if (users.length === 0) {
-      pendingEmpty.style.display = "block";
-      return;
-    }
-    pendingEmpty.style.display = "none";
+      pendingBody.innerHTML = "";
+      if (users.length === 0) {
+        pendingEmpty.style.display = "block";
+        return;
+      }
+      pendingEmpty.style.display = "none";
 
-    for (const u of users) {
-      const tr = document.createElement("tr");
-      tr.innerHTML =
-        "<td>" + u.username + "</td>" +
-        "<td>" + u.robloxUsername + "</td>" +
-        "<td>" + u.discordHandle + "</td>" +
-        "<td>" + formatDate(u.createdAt) + "</td>" +
-        "<td class=\"row-actions\">" +
-        "<button class=\"approve\" data-action=\"approve\" data-id=\"" + u.id + "\">Approve</button>" +
-        "<button class=\"reject\" data-action=\"reject\" data-id=\"" + u.id + "\">Reject</button>" +
-        "</td>";
-      pendingBody.appendChild(tr);
+      for (const u of users) {
+        const tr = document.createElement("tr");
+        tr.innerHTML =
+          "<td>" + u.username + "</td>" +
+          "<td>" + u.robloxUsername + "</td>" +
+          "<td>" + u.discordHandle + "</td>" +
+          "<td>" + formatDate(u.createdAt) + "</td>" +
+          "<td class=\"row-actions\">" +
+          "<button class=\"approve\" data-action=\"approve\" data-id=\"" + u.id + "\">Approve</button>" +
+          "<button class=\"reject\" data-action=\"reject\" data-id=\"" + u.id + "\">Reject</button>" +
+          "</td>";
+        pendingBody.appendChild(tr);
+      }
+    } catch (err) {
+      // leave existing table content in place; a stale list is better than a crash
     }
   }
 
   async function loadStaff() {
-    const res = await fetch("/group-community-management/api/staff", { credentials: "same-origin" });
-    if (!res.ok) return;
-    const { staff } = await res.json();
-    staffBody.innerHTML = "";
-    for (const s of staff) {
-      const tr = document.createElement("tr");
-      tr.innerHTML =
-        "<td>" + s.username + "</td>" +
-        "<td>" + s.displayName + "</td>" +
-        "<td>" + formatDate(s.createdAt) + "</td>";
-      staffBody.appendChild(tr);
+    try {
+      const res = await fetch("/group-community-management/api/staff", { credentials: "same-origin" });
+      if (!res.ok) return;
+      const { staff } = await res.json();
+      staffBody.innerHTML = "";
+      for (const s of staff) {
+        const tr = document.createElement("tr");
+        tr.innerHTML =
+          "<td>" + s.username + "</td>" +
+          "<td>" + s.displayName + "</td>" +
+          "<td>" + formatDate(s.createdAt) + "</td>";
+        staffBody.appendChild(tr);
+      }
+    } catch (err) {
+      // leave existing table content in place
     }
   }
 
@@ -123,14 +139,18 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!button) return;
     button.disabled = true;
 
-    const { ok } = await postJson("/group-community-management/api/citizens/review", {
-      userId: Number(button.dataset.id),
-      action: button.dataset.action,
-    });
+    try {
+      const { ok } = await postJson("/group-community-management/api/citizens/review", {
+        userId: Number(button.dataset.id),
+        action: button.dataset.action,
+      });
 
-    if (ok) {
-      await loadPending();
-    } else {
+      if (ok) {
+        await loadPending();
+      } else {
+        button.disabled = false;
+      }
+    } catch (err) {
       button.disabled = false;
     }
   });
@@ -150,30 +170,37 @@ document.addEventListener("DOMContentLoaded", function () {
       const submitBtn = addStaffForm.querySelector("button[type=submit]");
       submitBtn.disabled = true;
 
-      const { ok, data } = await postJson("/group-community-management/api/staff", {
-        username: addStaffForm.username.value.trim(),
-        password,
-        confirmPassword,
-        displayName: addStaffForm.displayName.value.trim(),
-      });
+      try {
+        const { ok, data } = await postJson("/group-community-management/api/staff", {
+          username: addStaffForm.username.value.trim(),
+          password,
+          confirmPassword,
+          displayName: addStaffForm.displayName.value.trim(),
+        });
 
-      submitBtn.disabled = false;
+        if (!ok) {
+          showAlert(addStaffAlert, data.error || "Could not create staff account.");
+          return;
+        }
 
-      if (!ok) {
-        showAlert(addStaffAlert, data.error || "Could not create staff account.");
-        return;
+        addStaffForm.reset();
+        await loadStaff();
+      } catch (err) {
+        showAlert(addStaffAlert, "Could not reach the server. Check your connection and try again.");
+      } finally {
+        submitBtn.disabled = false;
       }
-
-      addStaffForm.reset();
-      await loadStaff();
     });
   }
 
   const logoutBtn = dashboard.querySelector("[data-logout]");
   if (logoutBtn) {
     logoutBtn.addEventListener("click", async function () {
-      await fetch("/group-community-management/api/logout", { method: "POST", credentials: "same-origin" });
-      window.location.href = "login.html";
+      try {
+        await fetch("/group-community-management/api/logout", { method: "POST", credentials: "same-origin" });
+      } finally {
+        window.location.href = "login.html";
+      }
     });
   }
 
