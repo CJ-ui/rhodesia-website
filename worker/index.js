@@ -43,6 +43,13 @@ async function recordAttempt(db, attemptsTable, username, success) {
     .run();
 }
 
+async function recordAudit(db, actor, action, target) {
+  await db
+    .prepare(`INSERT INTO audit_log (actor, action, target) VALUES (?, ?, ?)`)
+    .bind(actor, action, target ?? null)
+    .run();
+}
+
 // ---------------------------------------------------------------------------
 // Citizens Portal
 // ---------------------------------------------------------------------------
@@ -142,13 +149,16 @@ async function handleStaffLogin(request, env, staffSessions) {
   }
 
   const { token } = await staffSessions.create(staff.id);
+  await recordAudit(env.DB, staff.username, "login");
   return json({ username: staff.username, displayName: staff.display_name }, 200, {
     "Set-Cookie": staffSessions.setCookieHeader(token),
   });
 }
 
 async function handleStaffLogout(request, env, staffSessions) {
+  const staff = await requireStaff(request, env, staffSessions);
   await staffSessions.destroy(request);
+  if (staff) await recordAudit(env.DB, staff.username, "logout");
   return json({}, 200, { "Set-Cookie": staffSessions.clearCookieHeader() });
 }
 
@@ -199,6 +209,7 @@ async function handleCitizenReview(request, env, staffSessions) {
   }
 
   const newStatus = action === "approve" ? "active" : "rejected";
+  const target = await env.DB.prepare("SELECT username FROM users WHERE id = ?").bind(userId).first();
   const result = await env.DB.prepare(
     `UPDATE users SET status = ?, reviewed_at = CURRENT_TIMESTAMP, reviewed_by = ?
      WHERE id = ? AND status = 'pending'`
@@ -209,6 +220,8 @@ async function handleCitizenReview(request, env, staffSessions) {
   if (result.meta.changes === 0) {
     return errorJson("No pending account found for that id", 404);
   }
+
+  await recordAudit(env.DB, staff.username, action === "approve" ? "approve_citizen" : "reject_citizen", target?.username);
 
   return json({ id: userId, status: newStatus });
 }
@@ -261,7 +274,27 @@ async function handleCreateStaff(request, env, staffSessions) {
     .bind(body.username, hash, salt, body.displayName.trim())
     .run();
 
+  await recordAudit(env.DB, requestingStaff.username, "create_staff", body.username);
+
   return json({ username: body.username, displayName: body.displayName.trim() }, 201);
+}
+
+async function handleAuditLog(request, env, staffSessions) {
+  const staff = await requireStaff(request, env, staffSessions);
+  if (!staff) return errorJson("Not logged in", 401);
+
+  const { results } = await env.DB.prepare(
+    "SELECT actor, action, target, created_at FROM audit_log ORDER BY created_at DESC, id DESC LIMIT 200"
+  ).all();
+
+  return json({
+    entries: results.map((e) => ({
+      actor: e.actor,
+      action: e.action,
+      target: e.target,
+      createdAt: e.created_at,
+    })),
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -349,6 +382,9 @@ export default {
       }
       if (pathname === "/group-community-management/api/staff" && method === "POST") {
         return await handleCreateStaff(request, env, staffSessions);
+      }
+      if (pathname === "/group-community-management/api/audit-log" && method === "GET") {
+        return await handleAuditLog(request, env, staffSessions);
       }
 
       // --- Staff dashboard gating ---

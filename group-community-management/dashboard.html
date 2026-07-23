@@ -62,8 +62,9 @@
         </table>
 
         <h3 style="font-size: 1rem;">Add Staff Account</h3>
-        <div class="form-alert form-alert--error" data-form-alert></div>
         <form data-add-staff-form novalidate>
+          <div class="form-alert form-alert--error" data-form-alert></div>
+
           <div class="field-group">
             <label for="displayName">Display Name</label>
             <input type="text" id="displayName" name="displayName" required />
@@ -82,6 +83,22 @@
           </div>
           <button class="portal-button" type="submit" style="width:auto;">Add Staff Account</button>
         </form>
+      </section>
+
+      <section class="dashboard-section">
+        <h2>Audit Log</h2>
+        <p class="empty-state" data-audit-empty style="display:none;">No actions recorded yet.</p>
+        <table class="portal-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Staff Member</th>
+              <th>Action</th>
+              <th>Target</th>
+            </tr>
+          </thead>
+          <tbody data-audit-body></tbody>
+        </table>
       </section>
     </div>
   </main>

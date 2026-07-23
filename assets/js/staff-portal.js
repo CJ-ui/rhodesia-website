@@ -67,6 +67,8 @@ document.addEventListener("DOMContentLoaded", function () {
   const staffBody = dashboard.querySelector("[data-staff-body]");
   const addStaffForm = dashboard.querySelector("[data-add-staff-form]");
   const addStaffAlert = addStaffForm ? addStaffForm.querySelector("[data-form-alert]") : null;
+  const auditBody = dashboard.querySelector("[data-audit-body]");
+  const auditEmpty = dashboard.querySelector("[data-audit-empty]");
 
   async function loadMe() {
     try {
@@ -134,6 +136,33 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  async function loadAuditLog() {
+    try {
+      const res = await fetch("/group-community-management/api/audit-log", { credentials: "same-origin" });
+      if (!res.ok) return;
+      const { entries } = await res.json();
+
+      auditBody.innerHTML = "";
+      if (entries.length === 0) {
+        auditEmpty.style.display = "block";
+        return;
+      }
+      auditEmpty.style.display = "none";
+
+      for (const entry of entries) {
+        const tr = document.createElement("tr");
+        tr.innerHTML =
+          "<td>" + formatDate(entry.createdAt) + "</td>" +
+          "<td>" + entry.actor + "</td>" +
+          "<td>" + entry.action + "</td>" +
+          "<td>" + (entry.target || "—") + "</td>";
+        auditBody.appendChild(tr);
+      }
+    } catch (err) {
+      // leave existing table content in place
+    }
+  }
+
   pendingBody.addEventListener("click", async function (e) {
     const button = e.target.closest("button[data-action]");
     if (!button) return;
@@ -147,6 +176,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (ok) {
         await loadPending();
+        await loadAuditLog();
       } else {
         button.disabled = false;
       }
@@ -185,6 +215,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         addStaffForm.reset();
         await loadStaff();
+        await loadAuditLog();
       } catch (err) {
         showAlert(addStaffAlert, "Could not reach the server. Check your connection and try again.");
       } finally {
@@ -207,4 +238,5 @@ document.addEventListener("DOMContentLoaded", function () {
   loadMe();
   loadPending();
   loadStaff();
+  loadAuditLog();
 });
