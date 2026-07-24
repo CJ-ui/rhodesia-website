@@ -334,29 +334,49 @@ a.portal-button {
 }
 
 /* ---- Correspondence (inbox / outbox) ---- */
-.mail-tabs {
+.mail-toolbar {
   display: flex;
-  gap: var(--space-2);
-  border-bottom: 1px solid var(--color-border);
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
   margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
 }
 
-.mail-tabs button {
-  position: relative;
+.mail-back-link {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-green-800);
+  text-decoration: none;
+}
+
+.mail-back-link:hover {
+  color: var(--color-gold-700);
+}
+
+.mail-view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.mail-view-toggle button {
   background: none;
   border: none;
-  border-bottom: 3px solid transparent;
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-4);
   font-family: var(--font-sans);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 700;
   color: var(--color-text-muted);
   cursor: pointer;
 }
 
-.mail-tabs button.is-active {
-  color: var(--color-green-800);
-  border-bottom-color: var(--color-gold-600);
+.mail-view-toggle button.is-active {
+  background: var(--color-green-800);
+  color: var(--color-white);
 }
 
 .mail-unread-badge {

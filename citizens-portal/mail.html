@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Correspondence — Citizen's Hub</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+  <link rel="stylesheet" href="../assets/css/tokens.css" />
+  <link rel="stylesheet" href="../assets/css/base.css" />
+  <link rel="stylesheet" href="../assets/css/forms.css" />
+</head>
+<body class="portal-body">
+
+  <header class="portal-header">
+    <div class="container">
+      <span class="portal-header__crest">
+        <img src="../assets/img/coat-of-arms-primary.svg" alt="" aria-hidden="true" />
+      </span>
+      <span class="portal-header__text">
+        <span class="portal-header__eyebrow">Republic of Rhodesia</span>
+        <span class="portal-header__title">Correspondence</span>
+      </span>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <div class="portal-card portal-card--wide"
+         data-mail-app
+         data-mail-base="/citizens-portal/api/mail"
+         data-mail-role="citizen"
+         data-mail-login="login.html">
+
+      <div class="mail-toolbar">
+        <button class="portal-button" type="button" data-mail-compose-open style="width:auto;">&#9993; Compose</button>
+        <div class="mail-view-toggle" role="tablist">
+          <button type="button" data-mail-tab="inbox" class="is-active">Inbox <span class="mail-unread-badge" data-mail-unread hidden>0</span></button>
+          <button type="button" data-mail-tab="sent">Sent</button>
+        </div>
+        <a href="dashboard.html" class="mail-back-link">&larr; Back to dashboard</a>
+      </div>
+
+      <!-- Inbox / Sent list -->
+      <div data-mail-list-view>
+        <p class="empty-state" data-mail-empty hidden>Your inbox is empty.</p>
+        <ul class="mail-list" data-mail-list></ul>
+      </div>
+
+      <!-- Single conversation -->
+      <div data-mail-thread-view hidden>
+        <button type="button" class="mail-back" data-mail-back>&larr; Back to list</button>
+        <h2 class="mail-thread-subject" data-mail-thread-subject></h2>
+        <p class="mail-thread-meta" data-mail-thread-meta></p>
+        <div class="mail-thread" data-mail-thread-messages></div>
+        <form data-mail-reply-form novalidate>
+          <div class="form-alert form-alert--error" data-form-alert></div>
+          <div class="field-group">
+            <label for="citizen-reply-body">Your reply</label>
+            <textarea id="citizen-reply-body" name="body" rows="4" required maxlength="5000"></textarea>
+          </div>
+          <button class="portal-button" type="submit" style="width:auto;">Send Reply</button>
+        </form>
+      </div>
+
+      <!-- Compose -->
+      <div data-mail-compose-view hidden>
+        <button type="button" class="mail-back" data-mail-compose-back>&larr; Back to inbox</button>
+        <h2 class="mail-thread-subject">New Message</h2>
+        <p class="mail-thread-meta">To: Government of Rhodesia</p>
+        <form data-mail-compose-form novalidate>
+          <div class="form-alert form-alert--error" data-form-alert></div>
+          <div class="form-alert form-alert--success" data-mail-compose-success></div>
+          <div class="field-group">
+            <label for="citizen-subject">Subject</label>
+            <input type="text" id="citizen-subject" name="subject" required maxlength="150" />
+          </div>
+          <div class="field-group">
+            <label for="citizen-body">Message</label>
+            <textarea id="citizen-body" name="body" rows="6" required maxlength="5000"></textarea>
+          </div>
+          <button class="portal-button" type="submit" style="width:auto;">Send Message</button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <footer class="portal-footer">
+    <p class="portal-footer__disclaimer">This is a fictional government portal created for an alternate-history worldbuilding project and does not represent any real government.</p>
+    <a href="../index.html">&larr; Return to main site</a>
+  </footer>
+
+  <script src="../assets/js/mail.js" defer></script>
+</body>
+</html>

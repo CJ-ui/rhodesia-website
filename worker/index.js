@@ -808,8 +808,8 @@ export default {
         return await handleCitizenMailDelete(request, env, citizenSessions);
       }
 
-      // --- Citizens dashboard gating ---
-      if (canonicalPath === "/citizens-portal/dashboard") {
+      // --- Citizens dashboard + mail gating ---
+      if (canonicalPath === "/citizens-portal/dashboard" || canonicalPath === "/citizens-portal/mail") {
         const redirect = await guardDashboard(request, env, citizenSessions, "/citizens-portal/login.html");
         if (redirect) return redirect;
         return env.ASSETS.fetch(request);
@@ -861,8 +861,11 @@ export default {
         return await handleStaffMailDelete(request, env, staffSessions);
       }
 
-      // --- Staff dashboard gating ---
-      if (canonicalPath === "/group-community-management/dashboard") {
+      // --- Staff dashboard + mail gating ---
+      if (
+        canonicalPath === "/group-community-management/dashboard" ||
+        canonicalPath === "/group-community-management/mail"
+      ) {
         const redirect = await guardDashboard(
           request,
           env,

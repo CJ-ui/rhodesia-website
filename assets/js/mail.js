@@ -1,8 +1,12 @@
-// Shared correspondence (inbox/outbox) module for both the citizen and staff
-// dashboards. Behaviour is parameterised through data attributes on the
-// [data-mail-app] container:
+// Standalone correspondence page for both the citizen and staff portals
+// (citizens-portal/mail.html and group-community-management/mail.html).
+// Behaviour is parameterised through data attributes on [data-mail-app]:
 //   data-mail-base  — API prefix, e.g. "/citizens-portal/api/mail"
 //   data-mail-role  — "citizen" | "staff"
+//   data-mail-login — where to send an unauthenticated visitor, e.g. "login.html"
+//
+// The page shows one view at a time: the Inbox/Sent list, a single conversation,
+// or the Compose form (opened with the Compose button, not a tab).
 //
 // SECURITY: message subjects and bodies are free-text authored by users. They
 // are ONLY ever placed into the DOM via textContent / createElement — never
@@ -14,6 +18,11 @@
 
   const BASE = app.dataset.mailBase;
   const ROLE = app.dataset.mailRole; // "citizen" | "staff"
+  const LOGIN = app.dataset.mailLogin || "login.html";
+
+  function goToLogin() {
+    window.location.href = LOGIN;
+  }
 
   function formatDate(iso) {
     try {
@@ -25,6 +34,10 @@
 
   async function getJson(path) {
     const res = await fetch(BASE + path, { credentials: "same-origin" });
+    if (res.status === 401) {
+      goToLogin();
+      return { ok: false, status: 401, data: {} };
+    }
     const data = await res.json().catch(() => ({}));
     return { ok: res.ok, status: res.status, data };
   }
@@ -36,11 +49,16 @@
       body: JSON.stringify(body),
       credentials: "same-origin",
     });
+    if (res.status === 401) {
+      goToLogin();
+      return { ok: false, status: 401, data: {} };
+    }
     const data = await res.json().catch(() => ({}));
     return { ok: res.ok, status: res.status, data };
   }
 
   // --- Element references ---
+  const composeOpenBtn = app.querySelector("[data-mail-compose-open]");
   const tabButtons = app.querySelectorAll("[data-mail-tab]");
   const unreadBadge = app.querySelector("[data-mail-unread]");
   const listView = app.querySelector("[data-mail-list-view]");
@@ -56,12 +74,14 @@
   const composeForm = app.querySelector("[data-mail-compose-form]");
   const composeAlert = composeForm.querySelector("[data-form-alert]");
   const composeSuccess = composeForm.querySelector("[data-mail-compose-success]");
+  const composeBack = app.querySelector("[data-mail-compose-back]");
   const recipientGroup = app.querySelector("[data-mail-recipient-group]");
   const recipientSelect = app.querySelector("[data-mail-recipient]");
   const backBtn = app.querySelector("[data-mail-back]");
 
   let currentFilter = "inbox"; // "inbox" | "sent"
   let currentThreadId = null;
+  let allThreads = [];
 
   function showAlert(el, message) {
     el.textContent = message;
@@ -76,6 +96,8 @@
     listView.hidden = view !== "list";
     threadView.hidden = view !== "thread";
     composeView.hidden = view !== "compose";
+    // The list toggle is only meaningful for the list view.
+    app.querySelector(".mail-view-toggle").style.visibility = view === "list" ? "visible" : "hidden";
   }
 
   function setActiveTab(name) {
@@ -86,12 +108,6 @@
   function threadCounterparty(t) {
     return ROLE === "citizen" ? t.counterparty : t.citizenUsername;
   }
-
-  // Inbox = threads whose latest activity was NOT started/last-sent by me is a
-  // weak proxy; instead we split by who the thread involves. For a two-party
-  // government mailbox, "Inbox" shows everything and "Sent" shows threads this
-  // side opened. We keep the full list and filter client-side.
-  let allThreads = [];
 
   function renderList() {
     listEl.textContent = "";
@@ -209,25 +225,33 @@
     renderMessages(data.messages);
     hideAlert(replyAlert);
     replyForm.reset();
-    setActiveTab(currentFilter);
     setView("thread");
   }
 
+  function openCompose() {
+    hideAlert(composeAlert);
+    hideAlert(composeSuccess);
+    composeForm.reset();
+    setView("compose");
+  }
+
+  function backToList() {
+    setActiveTab(currentFilter);
+    setView("list");
+    loadThreads();
+  }
+
   // --- Events ---
+  if (composeOpenBtn) composeOpenBtn.addEventListener("click", openCompose);
+  if (composeBack) composeBack.addEventListener("click", backToList);
+  if (backBtn) backBtn.addEventListener("click", backToList);
+
   tabButtons.forEach((btn) => {
     btn.addEventListener("click", function () {
-      const tab = btn.dataset.mailTab;
-      setActiveTab(tab);
-      if (tab === "compose") {
-        hideAlert(composeAlert);
-        hideAlert(composeSuccess);
-        composeForm.reset();
-        setView("compose");
-      } else {
-        currentFilter = tab;
-        renderList();
-        setView("list");
-      }
+      currentFilter = btn.dataset.mailTab;
+      setActiveTab(currentFilter);
+      renderList();
+      setView("list");
     });
   });
 
@@ -243,13 +267,6 @@
       openThread(Number(li.dataset.threadId));
     }
   });
-
-  if (backBtn) {
-    backBtn.addEventListener("click", function () {
-      setView("list");
-      loadThreads();
-    });
-  }
 
   replyForm.addEventListener("submit", async function (e) {
     e.preventDefault();

@@ -9,9 +9,13 @@
 			"/citizens-portal/api/*",
 			"/citizens-portal/dashboard",
 			"/citizens-portal/dashboard.html",
+			"/citizens-portal/mail",
+			"/citizens-portal/mail.html",
 			"/group-community-management/api/*",
 			"/group-community-management/dashboard",
-			"/group-community-management/dashboard.html"
+			"/group-community-management/dashboard.html",
+			"/group-community-management/mail",
+			"/group-community-management/mail.html"
 		]
 	},
 	"d1_databases": [
