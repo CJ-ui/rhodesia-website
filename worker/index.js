@@ -1,9 +1,14 @@
 import { hashPassword, verifyPassword } from "./lib/password.js";
 import { makeSessionStore } from "./lib/session.js";
-import { validateRegistration } from "./lib/validate.js";
+import { validateRegistration, validateMailSubject, validateMailBody } from "./lib/validate.js";
 
 const RATE_LIMIT_WINDOW_MINUTES = 15;
 const RATE_LIMIT_MAX_ATTEMPTS = 5;
+
+// Sending mail is throttled separately: every send is recorded (regardless of
+// outcome) and a sender may not exceed MAIL_RATE_LIMIT_MAX sends per window.
+const MAIL_RATE_LIMIT_WINDOW_MINUTES = 5;
+const MAIL_RATE_LIMIT_MAX = 15;
 
 function json(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
@@ -48,6 +53,22 @@ async function recordAudit(db, actor, action, target) {
     .prepare(`INSERT INTO audit_log (actor, action, target) VALUES (?, ?, ?)`)
     .bind(actor, action, target ?? null)
     .run();
+}
+
+async function isMailRateLimited(db, actor) {
+  const row = await db
+    .prepare(
+      `SELECT COUNT(*) AS count FROM mail_send_attempts
+       WHERE actor = ?
+       AND attempted_at > datetime('now', '-${MAIL_RATE_LIMIT_WINDOW_MINUTES} minutes')`
+    )
+    .bind(actor)
+    .first();
+  return (row?.count || 0) >= MAIL_RATE_LIMIT_MAX;
+}
+
+async function recordMailSend(db, actor) {
+  await db.prepare(`INSERT INTO mail_send_attempts (actor) VALUES (?)`).bind(actor).run();
 }
 
 // ---------------------------------------------------------------------------
@@ -124,6 +145,203 @@ async function handleCitizenMe(request, env, sessions) {
     discordHandle: user.discord_handle,
     status: user.status,
   });
+}
+
+// ---------------------------------------------------------------------------
+// Correspondence (citizen <-> government)
+// ---------------------------------------------------------------------------
+
+// Shape a thread row for the citizen's own view. "Government" is always the
+// counterparty; unread means the last message came from staff and postdates the
+// citizen's last read.
+function citizenThreadUnread(row) {
+  return (
+    row.last_sender_type === "staff" &&
+    (row.citizen_read_at === null || row.last_message_at > row.citizen_read_at)
+  );
+}
+
+function staffThreadUnread(row) {
+  return (
+    row.last_sender_type === "citizen" &&
+    (row.staff_read_at === null || row.last_message_at > row.staff_read_at)
+  );
+}
+
+async function handleCitizenMailThreads(request, env, sessions) {
+  const session = await sessions.validate(request);
+  if (!session) return errorJson("Not logged in", 401);
+
+  const { results } = await env.DB.prepare(
+    `SELECT id, subject, kind, started_by, last_message_at, last_sender_type, citizen_read_at
+     FROM mail_threads
+     WHERE citizen_id = ? AND citizen_deleted = 0
+     ORDER BY last_message_at DESC`
+  )
+    .bind(session.user_id)
+    .all();
+
+  let unreadCount = 0;
+  const threads = results.map((r) => {
+    const unread = citizenThreadUnread(r);
+    if (unread) unreadCount += 1;
+    return {
+      id: r.id,
+      subject: r.subject,
+      kind: r.kind,
+      counterparty: "Government of Rhodesia",
+      startedByYou: r.started_by === "citizen",
+      lastMessageAt: r.last_message_at,
+      unread,
+    };
+  });
+
+  return json({ threads, unreadCount });
+}
+
+async function handleCitizenMailThread(request, env, sessions, url) {
+  const session = await sessions.validate(request);
+  if (!session) return errorJson("Not logged in", 401);
+
+  const threadId = Number(url.searchParams.get("id"));
+  if (!Number.isInteger(threadId)) return errorJson("Invalid request", 400);
+
+  const thread = await env.DB.prepare(
+    `SELECT * FROM mail_threads WHERE id = ? AND citizen_id = ? AND citizen_deleted = 0`
+  )
+    .bind(threadId, session.user_id)
+    .first();
+  if (!thread) return errorJson("Conversation not found", 404);
+
+  const { results } = await env.DB.prepare(
+    `SELECT id, sender_type, sender_name, body, created_at
+     FROM mail_messages WHERE thread_id = ? ORDER BY created_at ASC, id ASC`
+  )
+    .bind(threadId)
+    .all();
+
+  // Opening the thread clears the citizen's unread state.
+  await env.DB.prepare(`UPDATE mail_threads SET citizen_read_at = CURRENT_TIMESTAMP WHERE id = ?`)
+    .bind(threadId)
+    .run();
+
+  return json({
+    thread: { id: thread.id, subject: thread.subject, kind: thread.kind },
+    messages: results.map((m) => ({
+      id: m.id,
+      senderType: m.sender_type,
+      senderName: m.sender_type === "staff" ? "Government of Rhodesia" : m.sender_name,
+      mine: m.sender_type === "citizen",
+      body: m.body,
+      createdAt: m.created_at,
+    })),
+  });
+}
+
+async function handleCitizenMailCompose(request, env, sessions) {
+  const session = await sessions.validate(request);
+  if (!session) return errorJson("Not logged in", 401);
+
+  const user = await env.DB.prepare("SELECT id, username, status FROM users WHERE id = ?")
+    .bind(session.user_id)
+    .first();
+  if (!user || user.status !== "active") return errorJson("Account is not active", 403);
+
+  if (await isMailRateLimited(env.DB, `citizen:${user.username}`)) {
+    return errorJson("You are sending messages too quickly. Please wait a moment and try again.", 429);
+  }
+
+  const body = await readJsonBody(request);
+  const subjectError = validateMailSubject(body.subject);
+  if (subjectError) return errorJson(subjectError, 400);
+  const bodyError = validateMailBody(body.body);
+  if (bodyError) return errorJson(bodyError, 400);
+
+  const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+  const threadResult = await env.DB.prepare(
+    `INSERT INTO mail_threads
+       (citizen_id, subject, kind, started_by, last_message_at, last_sender_type, citizen_read_at)
+     VALUES (?, ?, 'correspondence', 'citizen', ?, 'citizen', ?)`
+  )
+    .bind(user.id, body.subject.trim(), now, now)
+    .run();
+
+  const threadId = threadResult.meta.last_row_id;
+  await env.DB.prepare(
+    `INSERT INTO mail_messages (thread_id, sender_type, sender_citizen_id, sender_name, body, created_at)
+     VALUES (?, 'citizen', ?, ?, ?, ?)`
+  )
+    .bind(threadId, user.id, user.username, body.body.trim(), now)
+    .run();
+
+  await recordMailSend(env.DB, `citizen:${user.username}`);
+  return json({ id: threadId }, 201);
+}
+
+async function handleCitizenMailReply(request, env, sessions) {
+  const session = await sessions.validate(request);
+  if (!session) return errorJson("Not logged in", 401);
+
+  const user = await env.DB.prepare("SELECT id, username, status FROM users WHERE id = ?")
+    .bind(session.user_id)
+    .first();
+  if (!user || user.status !== "active") return errorJson("Account is not active", 403);
+
+  if (await isMailRateLimited(env.DB, `citizen:${user.username}`)) {
+    return errorJson("You are sending messages too quickly. Please wait a moment and try again.", 429);
+  }
+
+  const body = await readJsonBody(request);
+  const threadId = Number(body.threadId);
+  if (!Number.isInteger(threadId)) return errorJson("Invalid request", 400);
+  const bodyError = validateMailBody(body.body);
+  if (bodyError) return errorJson(bodyError, 400);
+
+  const thread = await env.DB.prepare(
+    `SELECT id FROM mail_threads WHERE id = ? AND citizen_id = ? AND citizen_deleted = 0`
+  )
+    .bind(threadId, user.id)
+    .first();
+  if (!thread) return errorJson("Conversation not found", 404);
+
+  const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+  await env.DB.prepare(
+    `INSERT INTO mail_messages (thread_id, sender_type, sender_citizen_id, sender_name, body, created_at)
+     VALUES (?, 'citizen', ?, ?, ?, ?)`
+  )
+    .bind(threadId, user.id, user.username, body.body.trim(), now)
+    .run();
+
+  // A citizen reply resurfaces the thread for staff and clears the citizen's own
+  // unread flag. staff_deleted is cleared so a reply brings it back to their view.
+  await env.DB.prepare(
+    `UPDATE mail_threads
+     SET last_message_at = ?, last_sender_type = 'citizen', citizen_read_at = ?, staff_deleted = 0
+     WHERE id = ?`
+  )
+    .bind(now, now, threadId)
+    .run();
+
+  await recordMailSend(env.DB, `citizen:${user.username}`);
+  return json({ id: threadId }, 201);
+}
+
+async function handleCitizenMailDelete(request, env, sessions) {
+  const session = await sessions.validate(request);
+  if (!session) return errorJson("Not logged in", 401);
+
+  const body = await readJsonBody(request);
+  const threadId = Number(body.threadId);
+  if (!Number.isInteger(threadId)) return errorJson("Invalid request", 400);
+
+  const result = await env.DB.prepare(
+    `UPDATE mail_threads SET citizen_deleted = 1 WHERE id = ? AND citizen_id = ?`
+  )
+    .bind(threadId, session.user_id)
+    .run();
+  if (result.meta.changes === 0) return errorJson("Conversation not found", 404);
+
+  return json({ id: threadId });
 }
 
 // ---------------------------------------------------------------------------
@@ -298,6 +516,225 @@ async function handleAuditLog(request, env, staffSessions) {
 }
 
 // ---------------------------------------------------------------------------
+// Correspondence (staff side — acts as "the government", collectively)
+// ---------------------------------------------------------------------------
+
+async function handleStaffMailThreads(request, env, staffSessions) {
+  const staff = await requireStaff(request, env, staffSessions);
+  if (!staff) return errorJson("Not logged in", 401);
+
+  const { results } = await env.DB.prepare(
+    `SELECT t.id, t.subject, t.kind, t.started_by, t.last_message_at, t.last_sender_type,
+            t.staff_read_at, u.username AS citizen_username
+     FROM mail_threads t
+     JOIN users u ON u.id = t.citizen_id
+     WHERE t.staff_deleted = 0
+     ORDER BY t.last_message_at DESC`
+  ).all();
+
+  let unreadCount = 0;
+  const threads = results.map((r) => {
+    const unread = staffThreadUnread(r);
+    if (unread) unreadCount += 1;
+    return {
+      id: r.id,
+      subject: r.subject,
+      kind: r.kind,
+      citizenUsername: r.citizen_username,
+      startedByStaff: r.started_by === "staff",
+      lastMessageAt: r.last_message_at,
+      unread,
+    };
+  });
+
+  return json({ threads, unreadCount });
+}
+
+async function handleStaffMailThread(request, env, staffSessions, url) {
+  const staff = await requireStaff(request, env, staffSessions);
+  if (!staff) return errorJson("Not logged in", 401);
+
+  const threadId = Number(url.searchParams.get("id"));
+  if (!Number.isInteger(threadId)) return errorJson("Invalid request", 400);
+
+  const thread = await env.DB.prepare(
+    `SELECT t.*, u.username AS citizen_username
+     FROM mail_threads t JOIN users u ON u.id = t.citizen_id
+     WHERE t.id = ? AND t.staff_deleted = 0`
+  )
+    .bind(threadId)
+    .first();
+  if (!thread) return errorJson("Conversation not found", 404);
+
+  const { results } = await env.DB.prepare(
+    `SELECT id, sender_type, sender_name, body, created_at
+     FROM mail_messages WHERE thread_id = ? ORDER BY created_at ASC, id ASC`
+  )
+    .bind(threadId)
+    .all();
+
+  await env.DB.prepare(`UPDATE mail_threads SET staff_read_at = CURRENT_TIMESTAMP WHERE id = ?`)
+    .bind(threadId)
+    .run();
+
+  return json({
+    thread: {
+      id: thread.id,
+      subject: thread.subject,
+      kind: thread.kind,
+      citizenUsername: thread.citizen_username,
+    },
+    messages: results.map((m) => ({
+      id: m.id,
+      senderType: m.sender_type,
+      senderName: m.sender_name,
+      mine: m.sender_type === "staff",
+      body: m.body,
+      createdAt: m.created_at,
+    })),
+  });
+}
+
+async function handleStaffMailRecipients(request, env, staffSessions) {
+  const staff = await requireStaff(request, env, staffSessions);
+  if (!staff) return errorJson("Not logged in", 401);
+
+  const { results } = await env.DB.prepare(
+    `SELECT id, username FROM users WHERE status = 'active' ORDER BY username ASC`
+  ).all();
+
+  return json({ recipients: results.map((u) => ({ id: u.id, username: u.username })) });
+}
+
+async function handleStaffMailCompose(request, env, staffSessions) {
+  const staff = await requireStaff(request, env, staffSessions);
+  if (!staff) return errorJson("Not logged in", 401);
+
+  if (await isMailRateLimited(env.DB, `staff:${staff.username}`)) {
+    return errorJson("You are sending messages too quickly. Please wait a moment and try again.", 429);
+  }
+
+  const body = await readJsonBody(request);
+  const subjectError = validateMailSubject(body.subject);
+  if (subjectError) return errorJson(subjectError, 400);
+  const bodyError = validateMailBody(body.body);
+  if (bodyError) return errorJson(bodyError, 400);
+
+  // Recipient is either a specific active citizen id or the literal "all" for a
+  // broadcast notice fanned out to every active citizen.
+  const recipient = body.recipient;
+  let citizens;
+  if (recipient === "all") {
+    const { results } = await env.DB.prepare(
+      `SELECT id, username FROM users WHERE status = 'active'`
+    ).all();
+    citizens = results;
+  } else {
+    const citizenId = Number(recipient);
+    if (!Number.isInteger(citizenId)) return errorJson("Choose a recipient.", 400);
+    const one = await env.DB.prepare(
+      `SELECT id, username FROM users WHERE id = ? AND status = 'active'`
+    )
+      .bind(citizenId)
+      .first();
+    if (!one) return errorJson("That citizen could not be found.", 404);
+    citizens = [one];
+  }
+
+  if (citizens.length === 0) return errorJson("There are no active citizens to notify.", 400);
+
+  const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+  const subject = body.subject.trim();
+  const messageBody = body.body.trim();
+
+  for (const citizen of citizens) {
+    const threadResult = await env.DB.prepare(
+      `INSERT INTO mail_threads
+         (citizen_id, subject, kind, started_by, last_message_at, last_sender_type, staff_read_at)
+       VALUES (?, ?, 'notice', 'staff', ?, 'staff', ?)`
+    )
+      .bind(citizen.id, subject, now, now)
+      .run();
+    await env.DB.prepare(
+      `INSERT INTO mail_messages (thread_id, sender_type, sender_staff_id, sender_name, body, created_at)
+       VALUES (?, 'staff', ?, ?, ?, ?)`
+    )
+      .bind(threadResult.meta.last_row_id, staff.id, staff.display_name, messageBody, now)
+      .run();
+  }
+
+  await recordMailSend(env.DB, `staff:${staff.username}`);
+  await recordAudit(
+    env.DB,
+    staff.username,
+    recipient === "all" ? "mail_broadcast_notice" : "mail_send_notice",
+    recipient === "all" ? `${citizens.length} citizens` : citizens[0].username
+  );
+
+  return json({ sent: citizens.length }, 201);
+}
+
+async function handleStaffMailReply(request, env, staffSessions) {
+  const staff = await requireStaff(request, env, staffSessions);
+  if (!staff) return errorJson("Not logged in", 401);
+
+  if (await isMailRateLimited(env.DB, `staff:${staff.username}`)) {
+    return errorJson("You are sending messages too quickly. Please wait a moment and try again.", 429);
+  }
+
+  const body = await readJsonBody(request);
+  const threadId = Number(body.threadId);
+  if (!Number.isInteger(threadId)) return errorJson("Invalid request", 400);
+  const bodyError = validateMailBody(body.body);
+  if (bodyError) return errorJson(bodyError, 400);
+
+  const thread = await env.DB.prepare(
+    `SELECT id FROM mail_threads WHERE id = ? AND staff_deleted = 0`
+  )
+    .bind(threadId)
+    .first();
+  if (!thread) return errorJson("Conversation not found", 404);
+
+  const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+  await env.DB.prepare(
+    `INSERT INTO mail_messages (thread_id, sender_type, sender_staff_id, sender_name, body, created_at)
+     VALUES (?, 'staff', ?, ?, ?, ?)`
+  )
+    .bind(threadId, staff.id, staff.display_name, body.body.trim(), now)
+    .run();
+
+  await env.DB.prepare(
+    `UPDATE mail_threads
+     SET last_message_at = ?, last_sender_type = 'staff', staff_read_at = ?, citizen_deleted = 0
+     WHERE id = ?`
+  )
+    .bind(now, now, threadId)
+    .run();
+
+  await recordMailSend(env.DB, `staff:${staff.username}`);
+  return json({ id: threadId }, 201);
+}
+
+async function handleStaffMailDelete(request, env, staffSessions) {
+  const staff = await requireStaff(request, env, staffSessions);
+  if (!staff) return errorJson("Not logged in", 401);
+
+  const body = await readJsonBody(request);
+  const threadId = Number(body.threadId);
+  if (!Number.isInteger(threadId)) return errorJson("Invalid request", 400);
+
+  const result = await env.DB.prepare(
+    `UPDATE mail_threads SET staff_deleted = 1 WHERE id = ?`
+  )
+    .bind(threadId)
+    .run();
+  if (result.meta.changes === 0) return errorJson("Conversation not found", 404);
+
+  await recordAudit(env.DB, staff.username, "mail_delete_thread", String(threadId));
+  return json({ id: threadId });
+}
+
+// ---------------------------------------------------------------------------
 // Dashboard page gating
 // ---------------------------------------------------------------------------
 
@@ -354,6 +791,23 @@ export default {
         return await handleCitizenMe(request, env, citizenSessions);
       }
 
+      // --- Citizens Correspondence API ---
+      if (pathname === "/citizens-portal/api/mail/threads" && method === "GET") {
+        return await handleCitizenMailThreads(request, env, citizenSessions);
+      }
+      if (pathname === "/citizens-portal/api/mail/thread" && method === "GET") {
+        return await handleCitizenMailThread(request, env, citizenSessions, url);
+      }
+      if (pathname === "/citizens-portal/api/mail/compose" && method === "POST") {
+        return await handleCitizenMailCompose(request, env, citizenSessions);
+      }
+      if (pathname === "/citizens-portal/api/mail/reply" && method === "POST") {
+        return await handleCitizenMailReply(request, env, citizenSessions);
+      }
+      if (pathname === "/citizens-portal/api/mail/delete" && method === "POST") {
+        return await handleCitizenMailDelete(request, env, citizenSessions);
+      }
+
       // --- Citizens dashboard gating ---
       if (canonicalPath === "/citizens-portal/dashboard") {
         const redirect = await guardDashboard(request, env, citizenSessions, "/citizens-portal/login.html");
@@ -385,6 +839,26 @@ export default {
       }
       if (pathname === "/group-community-management/api/audit-log" && method === "GET") {
         return await handleAuditLog(request, env, staffSessions);
+      }
+
+      // --- Staff Correspondence API ---
+      if (pathname === "/group-community-management/api/mail/threads" && method === "GET") {
+        return await handleStaffMailThreads(request, env, staffSessions);
+      }
+      if (pathname === "/group-community-management/api/mail/thread" && method === "GET") {
+        return await handleStaffMailThread(request, env, staffSessions, url);
+      }
+      if (pathname === "/group-community-management/api/mail/recipients" && method === "GET") {
+        return await handleStaffMailRecipients(request, env, staffSessions);
+      }
+      if (pathname === "/group-community-management/api/mail/compose" && method === "POST") {
+        return await handleStaffMailCompose(request, env, staffSessions);
+      }
+      if (pathname === "/group-community-management/api/mail/reply" && method === "POST") {
+        return await handleStaffMailReply(request, env, staffSessions);
+      }
+      if (pathname === "/group-community-management/api/mail/delete" && method === "POST") {
+        return await handleStaffMailDelete(request, env, staffSessions);
       }
 
       // --- Staff dashboard gating ---

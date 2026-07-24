@@ -34,6 +34,26 @@ export function validateDiscordHandle(value) {
   return null;
 }
 
+export function validateMailSubject(value) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return "A subject is required.";
+  }
+  if (value.trim().length > 150) {
+    return "Subject must be 150 characters or fewer.";
+  }
+  return null;
+}
+
+export function validateMailBody(value) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return "A message is required.";
+  }
+  if (value.length > 5000) {
+    return "Message must be 5000 characters or fewer.";
+  }
+  return null;
+}
+
 export function validateRegistration(body) {
   return (
     validateUsername(body.username) ||

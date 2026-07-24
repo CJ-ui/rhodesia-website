@@ -48,6 +48,57 @@
         </table>
       </section>
 
+      <section class="dashboard-section" data-mail-app data-mail-base="/group-community-management/api/mail" data-mail-role="staff">
+        <h2>Correspondence</h2>
+        <p class="empty-state" style="font-style:normal;">Read and reply to citizen enquiries, and issue official notices as the Government of Rhodesia.</p>
+
+        <div class="mail-tabs">
+          <button type="button" data-mail-tab="inbox" class="is-active">Inbox <span class="mail-unread-badge" data-mail-unread hidden>0</span></button>
+          <button type="button" data-mail-tab="sent">Notices Sent</button>
+          <button type="button" data-mail-tab="compose">Compose Notice</button>
+        </div>
+
+        <div data-mail-list-view>
+          <p class="empty-state" data-mail-empty hidden>Your inbox is empty.</p>
+          <ul class="mail-list" data-mail-list></ul>
+        </div>
+
+        <div data-mail-thread-view hidden>
+          <button type="button" class="mail-back" data-mail-back>&larr; Back to list</button>
+          <h3 class="mail-thread-subject" data-mail-thread-subject></h3>
+          <p class="mail-thread-meta" data-mail-thread-meta></p>
+          <div class="mail-thread" data-mail-thread-messages></div>
+          <form data-mail-reply-form novalidate>
+            <div class="form-alert form-alert--error" data-form-alert></div>
+            <div class="field-group">
+              <label for="staff-reply-body">Reply as the Government</label>
+              <textarea id="staff-reply-body" name="body" rows="4" required maxlength="5000"></textarea>
+            </div>
+            <button class="portal-button" type="submit" style="width:auto;">Send Reply</button>
+          </form>
+        </div>
+
+        <div data-mail-compose-view hidden>
+          <form data-mail-compose-form novalidate>
+            <div class="form-alert form-alert--error" data-form-alert></div>
+            <div class="form-alert form-alert--success" data-mail-compose-success></div>
+            <div class="field-group" data-mail-recipient-group hidden>
+              <label for="staff-recipient">Recipient</label>
+              <select id="staff-recipient" name="recipient" data-mail-recipient></select>
+            </div>
+            <div class="field-group">
+              <label for="staff-subject">Subject</label>
+              <input type="text" id="staff-subject" name="subject" required maxlength="150" />
+            </div>
+            <div class="field-group">
+              <label for="staff-body">Notice</label>
+              <textarea id="staff-body" name="body" rows="6" required maxlength="5000"></textarea>
+            </div>
+            <button class="portal-button" type="submit" style="width:auto;">Send Notice</button>
+          </form>
+        </div>
+      </section>
+
       <section class="dashboard-section">
         <h2>Staff Accounts</h2>
         <table class="portal-table" style="margin-bottom: var(--space-4);">
@@ -109,5 +160,6 @@
   </footer>
 
   <script src="../assets/js/staff-portal.js" defer></script>
+  <script src="../assets/js/mail.js" defer></script>
 </body>
 </html>

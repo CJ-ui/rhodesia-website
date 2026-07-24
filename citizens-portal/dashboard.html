@@ -25,20 +25,73 @@
   </header>
 
   <main class="portal-main">
-    <div class="portal-card" data-citizen-dashboard>
-      <h1>Welcome, <span data-username>&hellip;</span></h1>
-      <p class="portal-card__lede">
-        Account status: <span class="status-badge" data-status>&hellip;</span>
-      </p>
-      <div class="field-group">
-        <label>Roblox Username</label>
-        <p data-roblox>&hellip;</p>
+    <div class="portal-card portal-card--wide" data-citizen-dashboard>
+      <div class="dashboard-topbar">
+        <span class="dashboard-topbar__user">Signed in as <strong data-username>&hellip;</strong></span>
+        <button class="portal-button portal-button--secondary" style="width:auto;" data-logout type="button">Log Out</button>
       </div>
-      <div class="field-group">
-        <label>Discord Handle</label>
-        <p data-discord>&hellip;</p>
-      </div>
-      <button class="portal-button portal-button--secondary" data-logout type="button">Log Out</button>
+
+      <section class="dashboard-section">
+        <h2>Your Account</h2>
+        <p class="portal-card__lede">
+          Account status: <span class="status-badge" data-status>&hellip;</span>
+        </p>
+        <div class="field-group">
+          <label>Roblox Username</label>
+          <p data-roblox>&hellip;</p>
+        </div>
+        <div class="field-group">
+          <label>Discord Handle</label>
+          <p data-discord>&hellip;</p>
+        </div>
+      </section>
+
+      <section class="dashboard-section" data-mail-app data-mail-base="/citizens-portal/api/mail" data-mail-role="citizen">
+        <h2>Correspondence</h2>
+        <p class="portal-card__lede">Write to the Government of Rhodesia and read official notices sent to you.</p>
+
+        <div class="mail-tabs">
+          <button type="button" data-mail-tab="inbox" class="is-active">Inbox <span class="mail-unread-badge" data-mail-unread hidden>0</span></button>
+          <button type="button" data-mail-tab="sent">Sent</button>
+          <button type="button" data-mail-tab="compose">Compose</button>
+        </div>
+
+        <div data-mail-list-view>
+          <p class="empty-state" data-mail-empty hidden>Your inbox is empty.</p>
+          <ul class="mail-list" data-mail-list></ul>
+        </div>
+
+        <div data-mail-thread-view hidden>
+          <button type="button" class="mail-back" data-mail-back>&larr; Back to list</button>
+          <h3 class="mail-thread-subject" data-mail-thread-subject></h3>
+          <p class="mail-thread-meta" data-mail-thread-meta></p>
+          <div class="mail-thread" data-mail-thread-messages></div>
+          <form data-mail-reply-form novalidate>
+            <div class="form-alert form-alert--error" data-form-alert></div>
+            <div class="field-group">
+              <label for="citizen-reply-body">Your reply</label>
+              <textarea id="citizen-reply-body" name="body" rows="4" required maxlength="5000"></textarea>
+            </div>
+            <button class="portal-button" type="submit" style="width:auto;">Send Reply</button>
+          </form>
+        </div>
+
+        <div data-mail-compose-view hidden>
+          <form data-mail-compose-form novalidate>
+            <div class="form-alert form-alert--error" data-form-alert></div>
+            <div class="form-alert form-alert--success" data-mail-compose-success></div>
+            <div class="field-group">
+              <label for="citizen-subject">Subject</label>
+              <input type="text" id="citizen-subject" name="subject" required maxlength="150" />
+            </div>
+            <div class="field-group">
+              <label for="citizen-body">Message to the Government</label>
+              <textarea id="citizen-body" name="body" rows="6" required maxlength="5000"></textarea>
+            </div>
+            <button class="portal-button" type="submit" style="width:auto;">Send Message</button>
+          </form>
+        </div>
+      </section>
     </div>
   </main>
 
@@ -48,5 +101,6 @@
   </footer>
 
   <script src="../assets/js/citizen-portal.js" defer></script>
+  <script src="../assets/js/mail.js" defer></script>
 </body>
 </html>

@@ -5,3 +5,5 @@ Follow the brand consistently as set by the Brand_Guide.md
 Ensure that the website follows rate limits.
 
 Remember to always push and deploy to github.
+
+Whenever you are writing something, ensure that it is in British English
